@@ -1,0 +1,11 @@
+target/
+*.jar
+*.war
+.idea/
+*.iml
+*.log
+docker/mysql/data/
+docker/minio/data/
+docker/nacos/logs/
+学习进度.docx
+*.docx

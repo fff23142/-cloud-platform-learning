@@ -1,0 +1,18 @@
+spring.application.name=cloud-gateway
+server.port=8080
+
+spring.cloud.nacos.discovery.server-addr=127.0.0.1:8848
+spring.cloud.nacos.config.server-addr=127.0.0.1:8848
+
+# 路由规则 — 后续添加
+spring.cloud.gateway.routes[0].id=user-service
+spring.cloud.gateway.routes[0].uri=lb://service-user
+spring.cloud.gateway.routes[0].predicates[0]=Path=/user/**
+
+spring.cloud.gateway.routes[1].id=order-service
+spring.cloud.gateway.routes[1].uri=lb://service-order
+spring.cloud.gateway.routes[1].predicates[0]=Path=/order/**
+
+spring.cloud.gateway.routes[2].id=auth-service
+spring.cloud.gateway.routes[2].uri=lb://cloud-auth
+spring.cloud.gateway.routes[2].predicates[0]=Path=/auth/**
