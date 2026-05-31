@@ -1,7 +1,7 @@
 spring.application.name=cloud-auth
 server.port=8081
 
-spring.cloud.nacos.discovery.server-addr=127.0.0.1:8848
-spring.cloud.nacos.config.server-addr=127.0.0.1:8848
+spring.cloud.nacos.discovery.server-addr=127.0.0.1:18848
+spring.cloud.nacos.config.server-addr=127.0.0.1:18848
 
 # OAuth2 基础配置 — 第二周补充完整实现

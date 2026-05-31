@@ -1,0 +1,1 @@
+DELETE FROM user; INSERT INTO user (name, email) VALUES ('张三', 'zhang@example.com'), ('李四', 'li@example.com'), ('王五', 'wang@example.com');

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>新增用户</title>
+    <style>
+        body { font-family: "Microsoft YaHei", sans-serif; max-width: 400px; margin: 80px auto; padding: 20px; }
+        h2 { text-align: center; }
+        input { width: 100%; padding: 10px; margin: 8px 0; box-sizing: border-box; font-size: 16px; }
+        button { width: 100%; padding: 12px; background: #1890ff; color: white; border: none; font-size: 16px; cursor: pointer; }
+        #msg { margin-top: 12px; text-align: center; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h2>新增用户</h2>
+    <input id="name"  placeholder="姓名">
+    <input id="email" placeholder="邮箱">
+    <button onclick="addUser()">提交</button>
+    <div id="msg"></div>
+
+    <script>
+        function addUser() {
+            var name  = document.getElementById('name').value.trim();
+            var email = document.getElementById('email').value.trim();
+            if (!name || !email) { alert('请填完姓名和邮箱'); return; }
+
+            fetch('http://localhost:8091/user/add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: name, email: email })
+            })
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                document.getElementById('msg').innerText =
+                    data.code === 200
+                        ? '添加成功！用户 ID：' + data.data.id
+                        : '失败：' + data.message;
+            });
+        }
+    </script>
+</body>
+</html>
