@@ -8,14 +8,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 目标公司技术栈见 `docs/` 目录下的技术手册分析。
 
-## 学习路线（四周）
+## 学习路线（四部分）
 
-| 周次 | 主题 | 涉及模块 |
-|------|------|---------|
-| 第一周 | 微服务底座 | cloud-gateway, service-user, service-order |
-| 第二周 | 认证鉴权 + 数据层 | cloud-auth, service-user |
-| 第三周 | 分布式事务 + 任务调度 | service-order (Seata), service-user (PowerJob) |
-| 第四周 | 运维监控 | Prometheus, ELK, SkyWalking |
+| 部分 | 主题 | 涉及模块 | 状态 |
+|------|------|---------|------|
+| 第一部分 | 微服务底座 | cloud-gateway, service-user, service-order | ✅ 完成 |
+| 第二部分 | 认证鉴权 + 数据层 | cloud-auth, service-user | ⏳ |
+| 第三部分 | 分布式事务 + 任务调度 | service-order (Seata), service-user (PowerJob) | |
+| 第四部分 | 运维监控 | Prometheus, ELK, SkyWalking | |
 
 ## 模块架构
 

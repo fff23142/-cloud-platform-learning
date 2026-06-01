@@ -1,5 +1,5 @@
 package com.learn.user;
-
+//定义操作数据库的方法（查、增、删、改）
 // interface = 只定义方法签名，不写具体实现（C 里类似 .h 头文件声明）
 // extends BaseMapper<User> = 继承 MyBatis-Plus 提供的基础增删改查
 // 效果相当于免费获得：insert, deleteById, updateById, selectById, selectList 等方法

@@ -1,18 +1,32 @@
-spring.application.name=cloud-gateway
-server.port=8080
+# ====== 网关配置 ======
+# 网关就是一个"大门"：浏览器只访问 8080 端口
+# 网关根据 URL 路径自动转发到对应的微服务
+#
+# 比如：
+#   http://localhost:8080/user/1    → 转发到 service-user (8091) 的 /user/1
+#   http://localhost:8080/order/1   → 转发到 service-order (8092) 的 /order/1
 
-spring.cloud.nacos.discovery.server-addr=127.0.0.1:18848
-spring.cloud.nacos.config.server-addr=127.0.0.1:18848
+spring:
+  application:
+    name: cloud-gateway
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 127.0.0.1:18848
+      config:
+        import-check:
+          enabled: false
+    gateway:
+      routes:
+        - id: user-route          # 路由名称，随便起
+          uri: lb://service-user   # lb:// = 从 Nacos 取 service-user 的地址，自动负载均衡
+          predicates:
+            - Path=/user/**        # 所有 /user/ 开头的请求都走这条
 
-# 路由规则 — 后续添加
-spring.cloud.gateway.routes[0].id=user-service
-spring.cloud.gateway.routes[0].uri=lb://service-user
-spring.cloud.gateway.routes[0].predicates[0]=Path=/user/**
+        - id: order-route
+          uri: lb://service-order  # 同理，/order/ 开头的转到订单服务
+          predicates:
+            - Path=/order/**
 
-spring.cloud.gateway.routes[1].id=order-service
-spring.cloud.gateway.routes[1].uri=lb://service-order
-spring.cloud.gateway.routes[1].predicates[0]=Path=/order/**
-
-spring.cloud.gateway.routes[2].id=auth-service
-spring.cloud.gateway.routes[2].uri=lb://cloud-auth
-spring.cloud.gateway.routes[2].predicates[0]=Path=/auth/**
+server:
+  port: 8080

@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
-
+//定义一个"用户"实体长什么样：id、name、email、deleted
 // package 就是 C 语言里的文件夹路径，用来组织代码不重名
 // 这个文件的完整名字其实是 com.learn.user.User
 

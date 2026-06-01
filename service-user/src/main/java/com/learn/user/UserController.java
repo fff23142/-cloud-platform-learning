@@ -12,7 +12,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-
+//接收浏览器发来的 HTTP 请求，调Mapper代码根据网页需要读写数据库
+//将结果包装为JSON返回给浏览器
 @CrossOrigin(origins = "*") // 允许任何来源的网页调用此接口（本地开发用，生产环境要收紧）
 @RestController
 @RequestMapping("/user")
