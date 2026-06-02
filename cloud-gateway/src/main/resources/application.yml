@@ -17,6 +17,9 @@ spring:
         import-check:
           enabled: false
     gateway:
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Origin
+        # 去掉上游服务重复加的 CORS 头，只保留网关加的一份
       routes:
         - id: user-route          # 路由名称，随便起
           uri: lb://service-user   # lb:// = 从 Nacos 取 service-user 的地址，自动负载均衡
@@ -24,9 +27,19 @@ spring:
             - Path=/user/**        # 所有 /user/ 开头的请求都走这条
 
         - id: order-route
-          uri: lb://service-order  # 同理，/order/ 开头的转到订单服务
+          uri: lb://service-order
           predicates:
             - Path=/order/**
 
+        - id: auth-route
+          uri: lb://cloud-auth     # 登录接口转发到认证服务
+          predicates:
+            - Path=/auth/**
+
 server:
   port: 8080
+
+# JWT 密钥（和 cloud-auth 用同一把密钥，否则网关验不过 Token）
+auth:
+  jwt:
+    secret: ThisIsASecretKeyForLearningMinLength32

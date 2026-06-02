@@ -2,7 +2,6 @@ package com.learn.order;
 
 import com.learn.common.Result;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -14,7 +13,7 @@ import java.util.Map;
 
 // 接收浏览器发来的 HTTP 请求，调 Mapper 读写订单数据
 // 内部通过 Feign（UserFeignClient）远程调用 service-user 拿用户信息
-@CrossOrigin(origins = "*")
+// 跨域统一由网关 CorsConfig 处理
 @RestController
 @RequestMapping("/order")
 public class OrderController {

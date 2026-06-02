@@ -3,18 +3,19 @@ package com.learn.user;
 // import = C 里的 #include，把要用到的外部类引进来
 import com.learn.common.Result;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 //接收浏览器发来的 HTTP 请求，调Mapper代码根据网页需要读写数据库
-//将结果包装为JSON返回给浏览器
-@CrossOrigin(origins = "*") // 允许任何来源的网页调用此接口（本地开发用，生产环境要收紧）
+//将结果包装为JSON返回给浏览器（跨域统一由网关 CorsConfig 处理）
 @RestController
 @RequestMapping("/user")
 public class UserController {
@@ -25,10 +26,25 @@ public class UserController {
     // ====== 1. 最简单的文本接口 ======
     // 验证服务是否正常启动
 
-    @GetMapping("/hello")   // 处理 GET 请求，路径为 /user/hello
-    public String hello() {
-        return "Hello, service-user is running!";
-        // 浏览器输入 http://localhost:8091/user/hello 能看到这句话
+    @GetMapping("/hello")
+    public String hello(
+            @RequestHeader(value = "X-User-Name", defaultValue = "%E6%9C%AA%E7%9F%A5") String username,
+            @RequestHeader(value = "X-User-Role", defaultValue = "user") String role) {
+        // 网关把中文名 URL 编码了，这里解码还原
+        username = URLDecoder.decode(username, StandardCharsets.UTF_8);
+        return "Hello, " + username + "！ 你的角色是：" + role;
+    }
+
+    // ====== 1.5 管理员专用接口（接口权限演示） ======
+
+    @GetMapping("/admin")
+    public Result<String> adminOnly(
+            @RequestHeader(value = "X-User-Role", defaultValue = "user") String role) {
+        if (!"admin".equals(role)) {
+            return Result.fail(403, "权限不足，仅管理员可访问");
+        }
+        return Result.ok("欢迎管理员！这是只有 admin 才能看到的页面");
+        // 普通用户访问会收到 403
     }
 
     // ====== 2. 查所有用户（从数据库） ======

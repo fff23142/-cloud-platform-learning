@@ -1,7 +1,30 @@
-spring.application.name=cloud-auth
-server.port=8081
+# ====== 认证服务配置 ======
+# 负责用户登录、验证密码、签发 JWT Token
 
-spring.cloud.nacos.discovery.server-addr=127.0.0.1:18848
-spring.cloud.nacos.config.server-addr=127.0.0.1:18848
+spring:
+  application:
+    name: cloud-auth
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 127.0.0.1:18848
+      config:
+        import-check:
+          enabled: false
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3306/learn_user?useSSL=false&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=UTF-8
+    username: root
+    password: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
 
-# OAuth2 基础配置 — 第二周补充完整实现
+server:
+  port: 8081
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+
+auth:
+  jwt:
+    secret: ThisIsASecretKeyForLearningMinLength32
+    expiration: 7200000

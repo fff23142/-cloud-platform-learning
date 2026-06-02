@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>API 测试面板</title>
+    <style>
+        body { font-family: "Microsoft YaHei", sans-serif; max-width: 520px; margin: 40px auto; padding: 20px; }
+        h2 { text-align: center; color: #333; }
+        .card { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin: 12px 0; }
+        .card h3 { margin: 0 0 10px 0; font-size: 15px; color: #555; }
+        input { width: 100%; padding: 10px; margin: 6px 0; box-sizing: border-box; font-size: 15px; border: 1px solid #ccc; border-radius: 4px; }
+        .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+        button { padding: 10px 16px; background: #1890ff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; }
+        button.warn { background: #fa541c; }
+        button.green { background: #52c41a; }
+        button:hover { opacity: 0.85; }
+        .result { background: #f5f5f5; padding: 12px; margin-top: 10px; border-radius: 4px; font-size: 13px; word-break: break-all; max-height: 200px; overflow-y: auto; white-space: pre-wrap; }
+        .result.error { border-left: 3px solid #ff4d4f; }
+        .result.ok { border-left: 3px solid #52c41a; }
+        .info { font-size: 13px; color: #888; text-align: center; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h2>API 测试面板</h2>
+
+    <!-- 登录 -->
+    <div class="card">
+        <h3>1. 登录</h3>
+        <input id="username" placeholder="用户名（吴烨凡 / 张三 / 李四 / 王五）">
+        <input id="password" type="password" placeholder="密码（123456）">
+        <button onclick="login()">登录</button>
+        <div id="loginResult" class="result" style="display:none"></div>
+    </div>
+
+    <!-- 接口测试 -->
+    <div class="card" id="testCard" style="display:none">
+        <h3>2. 测试接口（自动带 Token）</h3>
+        <div class="btn-row">
+            <button onclick="call('/user/hello')">/user/hello</button>
+            <button onclick="call('/user/list')">/user/list</button>
+            <button onclick="call('/order/list')">/order/list</button>
+            <button onclick="call('/order/1')">/order/1</button>
+            <button class="warn" onclick="call('/user/admin')">/user/admin</button>
+            <button class="green" onclick="callNoToken('/user/hello')">无Token访问</button>
+        </div>
+        <div id="apiResult" class="result" style="display:none"></div>
+    </div>
+
+    <div class="info">所有请求走网关 8080 → Gateway 验证 Token → 转发微服务</div>
+
+    <script>
+        var token = '';
+
+        function show(el, text, cls) {
+            el.style.display = 'block';
+            el.textContent = text;
+            el.className = 'result ' + (cls || 'ok');
+        }
+
+        // ====== 登录 ======
+        function login() {
+            var user = document.getElementById('username').value.trim();
+            var pass = document.getElementById('password').value.trim();
+            if (!user || !pass) { alert('请输入用户名和密码'); return; }
+
+            fetch('http://localhost:8080/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: user, password: pass })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                var el = document.getElementById('loginResult');
+                if (d.code === 200) {
+                    token = d.data.token;
+                    show(el, '登录成功\n用户名：' + d.data.username + '\n角色：' + d.data.role + '\n\nToken 已保存，下方按钮可直接使用');
+                    document.getElementById('testCard').style.display = 'block';
+                } else {
+                    show(el, '登录失败：' + d.message, 'error');
+                }
+            });
+        }
+
+        // ====== 带 Token 调接口 ======
+        function call(path) {
+            var el = document.getElementById('apiResult');
+            show(el, '请求中...', '');
+            fetch('http://localhost:8080' + path, {
+                headers: { 'Authorization': 'Bearer ' + token }
+            })
+            .then(function(r) { return r.text(); })
+            .then(function(txt) {
+                try { txt = JSON.stringify(JSON.parse(txt), null, 2); } catch(e) {}
+                show(el, path + '  (' + token.substring(0, 20) + '...)\n\n' + txt);
+            });
+        }
+
+        // ====== 不带 Token 调接口 ======
+        function callNoToken(path) {
+            var el = document.getElementById('apiResult');
+            show(el, '请求中（无Token）...', '');
+            fetch('http://localhost:8080' + path)
+            .then(function(r) { return r.text(); })
+            .then(function(txt) {
+                try { txt = JSON.stringify(JSON.parse(txt), null, 2); } catch(e) {}
+                show(el, path + ' （无Token）\n\n' + txt, txt.includes('401') ? 'error' : 'ok');
+            });
+        }
+    </script>
+</body>
+</html>

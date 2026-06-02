@@ -1,0 +1,2 @@
+ALTER TABLE user ADD COLUMN password VARCHAR(200);
+UPDATE user SET password = '$2b$12$NtQbmzSO9WXPJ5yelY5DZeZVgV1QfwO759YVCm5BH2H7OlONYq7wm' WHERE name = '吴烨凡';
