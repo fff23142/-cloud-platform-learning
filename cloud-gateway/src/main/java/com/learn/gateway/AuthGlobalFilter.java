@@ -40,8 +40,8 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
             return chain.filter(exchange);
         }
 
-        // 登录接口直接放行（不用带 Token）
-        if (path.startsWith("/auth/login")) {
+        // 登录和注册接口直接放行（不用带 Token）
+        if (path.startsWith("/auth/login") || path.startsWith("/auth/register")) {
             return chain.filter(exchange);
         }
 

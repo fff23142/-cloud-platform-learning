@@ -85,7 +85,7 @@ public class AuthConfig {
                 // STATELESS = 服务端不记登录状态，每次请求只看 Token
                 // 传统网站的 session（服务端记登录态）跟微服务不搭
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/auth/login").permitAll()   // 登录接口允许匿名访问
+                .requestMatchers("/auth/login", "/auth/register").permitAll()   // 登录、注册允许匿名访问
                 .anyRequest().authenticated()                 // 其他所有请求都要登录
             )
             .addFilterBefore(jwtAuthFilter,

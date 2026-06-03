@@ -6,6 +6,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -14,19 +15,23 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
-// 认证服务控制器：处理登录请求，验证用户身份，签发 JWT 令牌
-// 跨域统一由网关 CorsConfig 处理，这里不需要重复加
+// 认证服务控制器：登录、注册、身份查询
+// 跨域统一由网关 CorsConfig 处理
 @RestController
 @RequestMapping("/auth")
 public class UserLoginController {
 
     @Autowired
     private AuthenticationManager authManager;
-    // 认证管理器 —— Spring Security 的"公章"
-    // 拿着用户名密码去它那盖章，通过就是合法用户，不通过就是假的
 
     @Autowired
     private JwtUtil jwtUtil;
+
+    @Autowired
+    private AuthUserMapper authUserMapper;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     // ====== 登录接口 ======
     // POST /auth/login  +  JSON body: {"username":"admin","password":"123456"}
@@ -71,9 +76,94 @@ public class UserLoginController {
 
     @GetMapping("/me")
     public Result<String> currentUser(@RequestHeader("Authorization") String authHeader) {
-        // Authorization 头的格式是 "Bearer eyJhbG..."
         String token = authHeader.replace("Bearer ", "");
         String username = jwtUtil.getUsername(token);
         return Result.ok("当前登录用户：" + username);
+    }
+
+    // ====== 注册接口 ======
+    // 未登录时：只能注册普通用户
+    // 管理员登录后：可以注册管理员（在请求体里加 {"role":"admin"}）
+
+    @PostMapping("/register")
+    public Result<String> register(@RequestBody Map<String, String> body,
+                                   @RequestHeader(value = "Authorization", required = false) String authHeader) {
+        String username = body.get("username");
+        String password = body.get("password");
+        String confirmPassword = body.get("confirmPassword");
+        String email = body.getOrDefault("email", "");
+        String wantedRole = body.getOrDefault("role", "user");
+
+        if (username == null || username.isBlank() || password == null || password.isBlank()) {
+            return Result.fail(400, "用户名和密码不能为空");
+        }
+        if (confirmPassword != null && !confirmPassword.isBlank()
+                && !password.equals(confirmPassword)) {
+            return Result.fail(400, "两次输入的密码不一致");
+        }
+
+        if (authUserMapper.findByUsername(username) != null) {
+            return Result.fail(409, "用户名「" + username + "」已存在，请换一个");
+        }
+
+        // 权限判断：只有已登录的管理员才能注册 admin 账号
+        String finalRole = "user";
+        if ("admin".equals(wantedRole)) {
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return Result.fail(403, "只有管理员才能创建管理员账号，请先登录");
+            }
+            String token = authHeader.replace("Bearer ", "");
+            if (!jwtUtil.validate(token)) {
+                return Result.fail(403, "Token 无效或已过期");
+            }
+            String currentRole = jwtUtil.getRole(token);
+            if (!"admin".equals(currentRole)) {
+                return Result.fail(403, "权限不足：只有管理员才能创建管理员账号");
+            }
+            finalRole = "admin";
+        }
+
+        String encoded = passwordEncoder.encode(password);
+        authUserMapper.register(username, email, encoded, finalRole);
+        return Result.ok("注册成功！" + username + "（" + finalRole + "）");
+    }
+
+    // ====== 修改密码 ======
+    // POST /auth/change-password  +  Header: Authorization: Bearer <token>
+    // JSON: {"oldPassword":"旧密码","newPassword":"新密码","confirmPassword":"新密码确认"}
+
+    @PostMapping("/change-password")
+    public Result<String> changePassword(@RequestBody Map<String, String> body,
+                                         @RequestHeader("Authorization") String authHeader) {
+        String oldPassword = body.get("oldPassword");
+        String newPassword = body.get("newPassword");
+        String confirmPassword = body.get("confirmPassword");
+
+        if (oldPassword == null || newPassword == null || confirmPassword == null) {
+            return Result.fail(400, "请填写所有密码字段");
+        }
+        if (!newPassword.equals(confirmPassword)) {
+            return Result.fail(400, "两次输入的新密码不一致");
+        }
+        if (newPassword.length() < 6) {
+            return Result.fail(400, "新密码至少 6 位");
+        }
+
+        // 从 Token 取当前用户名
+        String token = authHeader.replace("Bearer ", "");
+        String username = jwtUtil.getUsername(token);
+
+        // 验证旧密码
+        AuthUser dbUser = authUserMapper.findByUsername(username);
+        if (dbUser == null || !passwordEncoder.matches(oldPassword, dbUser.getPassword())) {
+            // passwordEncoder.matches(明文, 密文) = 比对密码是否正确
+            // 类似 C 里 strcmp(crypt(input, salt), stored_hash)
+            return Result.fail(401, "旧密码不正确");
+        }
+
+        // 更新密码
+        String encoded = passwordEncoder.encode(newPassword);
+        authUserMapper.updatePassword(username, encoded);
+        return Result.ok("密码修改成功！");
     }
 }

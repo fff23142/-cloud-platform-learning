@@ -23,18 +23,33 @@
 <body>
     <h2>API 测试面板</h2>
 
+    <!-- 注册 -->
+    <div class="card">
+        <h3>1. 注册</h3>
+        <input id="regUser" placeholder="用户名">
+        <input id="regEmail" placeholder="邮箱（选填）">
+        <input id="regPass" type="password" placeholder="密码">
+        <input id="regPass2" type="password" placeholder="确认密码">
+        <div style="font-size:13px;margin:6px 0">
+            <label><input type="radio" name="regRole" value="user" checked> 普通用户</label>
+            <label style="margin-left:12px"><input type="radio" name="regRole" value="admin"> 管理员（需已登录管理员）</label>
+        </div>
+        <button class="green" onclick="register()">注册</button>
+        <div id="regResult" class="result" style="display:none"></div>
+    </div>
+
     <!-- 登录 -->
     <div class="card">
-        <h3>1. 登录</h3>
-        <input id="username" placeholder="用户名（吴烨凡 / 张三 / 李四 / 王五）">
-        <input id="password" type="password" placeholder="密码（123456）">
+        <h3>2. 登录</h3>
+        <input id="username" placeholder="用户名">
+        <input id="password" type="password" placeholder="密码">
         <button onclick="login()">登录</button>
         <div id="loginResult" class="result" style="display:none"></div>
     </div>
 
     <!-- 接口测试 -->
     <div class="card" id="testCard" style="display:none">
-        <h3>2. 测试接口（自动带 Token）</h3>
+        <h3>3. 测试接口（自动带 Token）</h3>
         <div class="btn-row">
             <button onclick="call('/user/hello')">/user/hello</button>
             <button onclick="call('/user/list')">/user/list</button>
@@ -43,7 +58,23 @@
             <button class="warn" onclick="call('/user/admin')">/user/admin</button>
             <button class="green" onclick="callNoToken('/user/hello')">无Token访问</button>
         </div>
+        <div class="btn-row" style="margin-top:8px">
+            <button onclick="lockTest('/user/deduct-no-lock')">无锁扣库存</button>
+            <button class="warn" onclick="lockTest('/user/deduct-with-lock')">有锁扣库存</button>
+            <button class="green" onclick="call('/user/reset-stock')">重置库存</button>
+        </div>
+        </div>
         <div id="apiResult" class="result" style="display:none"></div>
+    </div>
+
+    <!-- 改密码 -->
+    <div class="card" id="pwdCard" style="display:none">
+        <h3>4. 修改密码</h3>
+        <input id="oldPass" type="password" placeholder="旧密码">
+        <input id="newPass" type="password" placeholder="新密码（至少6位）">
+        <input id="confirmPass" type="password" placeholder="确认新密码">
+        <button onclick="changePassword()">提交修改</button>
+        <div id="pwdResult" class="result" style="display:none"></div>
     </div>
 
     <div class="info">所有请求走网关 8080 → Gateway 验证 Token → 转发微服务</div>
@@ -55,6 +86,39 @@
             el.style.display = 'block';
             el.textContent = text;
             el.className = 'result ' + (cls || 'ok');
+        }
+
+        // ====== 注册 ======
+        function register() {
+            var user = document.getElementById('regUser').value.trim();
+            var pass = document.getElementById('regPass').value.trim();
+            var pass2 = document.getElementById('regPass2').value.trim();
+            var email = document.getElementById('regEmail').value.trim();
+            if (!user || !pass) { alert('用户名和密码不能为空'); return; }
+            if (pass !== pass2) { alert('两次输入的密码不一致'); return; }
+
+            var role = document.querySelector('input[name=\"regRole\"]:checked').value;
+            var headers = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = 'Bearer ' + token;
+
+            fetch('http://localhost:8080/auth/register', {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify({ username: user, password: pass, confirmPassword: pass2, email: email, role: role })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                var el = document.getElementById('regResult');
+                show(el, JSON.stringify(d, null, 2), d.code === 200 ? 'ok' : 'error');
+                if (d.code === 200) {
+                    document.getElementById('regUser').value = '';
+                    document.getElementById('regEmail').value = '';
+                    document.getElementById('regPass').value = '';
+                    document.getElementById('regPass2').value = '';
+                    document.getElementById('username').value = user;
+                    document.getElementById('password').value = '';
+                }
+            });
         }
 
         // ====== 登录 ======
@@ -73,8 +137,10 @@
                 var el = document.getElementById('loginResult');
                 if (d.code === 200) {
                     token = d.data.token;
+                    document.getElementById('password').value = '';
                     show(el, '登录成功\n用户名：' + d.data.username + '\n角色：' + d.data.role + '\n\nToken 已保存，下方按钮可直接使用');
                     document.getElementById('testCard').style.display = 'block';
+                    document.getElementById('pwdCard').style.display = 'block';
                 } else {
                     show(el, '登录失败：' + d.message, 'error');
                 }
@@ -92,6 +158,54 @@
             .then(function(txt) {
                 try { txt = JSON.stringify(JSON.parse(txt), null, 2); } catch(e) {}
                 show(el, path + '  (' + token.substring(0, 20) + '...)\n\n' + txt);
+            });
+        }
+
+        // ====== 修改密码 ======
+        function changePassword() {
+            var oldPwd = document.getElementById('oldPass').value;
+            var newPwd = document.getElementById('newPass').value;
+            var confPwd = document.getElementById('confirmPass').value;
+            var el = document.getElementById('pwdResult');
+
+            fetch('http://localhost:8080/auth/change-password', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                },
+                body: JSON.stringify({ oldPassword: oldPwd, newPassword: newPwd, confirmPassword: confPwd })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                show(el, JSON.stringify(d, null, 2), d.code === 200 ? 'ok' : 'error');
+            });
+        }
+
+        // ====== 锁测试 — 同时发两个请求，对比有锁/无锁效果 ======
+        function lockTest(path) {
+            var el = document.getElementById('apiResult');
+            show(el, '同时发送 2 个请求...', '');
+
+            var headers = token ? { 'Authorization': 'Bearer ' + token } : {};
+            var start = Date.now();
+
+            Promise.all([
+                fetch('http://localhost:8080' + path, { headers: headers }),
+                fetch('http://localhost:8080' + path, { headers: headers })
+            ])
+            .then(function(responses) {
+                return Promise.all(responses.map(function(r) { return r.text(); }));
+            })
+            .then(function(texts) {
+                var elapsed = Date.now() - start;
+                try { texts[0] = JSON.stringify(JSON.parse(texts[0]), null, 2); } catch(e) {}
+                try { texts[1] = JSON.stringify(JSON.parse(texts[1]), null, 2); } catch(e) {}
+                show(el,
+                    path + ' 并发测试 (' + elapsed + 'ms)\n\n' +
+                    '请求1:\n' + texts[0] + '\n\n' +
+                    '请求2:\n' + texts[1]
+                );
             });
         }
 

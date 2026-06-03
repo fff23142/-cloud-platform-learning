@@ -11,10 +11,32 @@ spring:
       enabled: true
       force: true
   datasource:
-    url: jdbc:mysql://127.0.0.1:3306/learn_user?useSSL=false&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_general_ci
-    username: root
-    password: root
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    dynamic:
+      primary: master            # 默认走主库（写操作）
+      strict: false              # 找不到匹配数据源时退回到主库
+      datasource:
+        master:                  # 主库 — INSERT / UPDATE / DELETE
+          url: jdbc:mysql://127.0.0.1:3306/learn_user?useSSL=false&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=UTF-8
+          username: root
+          password: root
+          driver-class-name: com.mysql.cj.jdbc.Driver
+        slave:                   # 从库 — SELECT（暂时同库模拟，生产环境换成只读副本地址）
+          url: jdbc:mysql://127.0.0.1:3306/learn_user?useSSL=false&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=UTF-8
+          username: root
+          password: root
+          driver-class-name: com.mysql.cj.jdbc.Driver
+
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+
+redisson:
+  config: |
+    singleServerConfig:
+      address: "redis://127.0.0.1:6379"
+      connectionMinimumIdleSize: 1
+      connectionPoolSize: 2
 
 server:
   port: 8091

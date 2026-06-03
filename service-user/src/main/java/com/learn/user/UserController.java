@@ -1,7 +1,10 @@
 package com.learn.user;
 
 // import = C 里的 #include，把要用到的外部类引进来
+import com.baomidou.dynamic.datasource.annotation.DS;
 import com.learn.common.Result;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,8 +23,12 @@ import java.util.List;
 @RequestMapping("/user")
 public class UserController {
 
-    @Autowired  // Spring 会自动把 UserMapper 的实现注入进来，不需要手动 new
+    @Autowired
     private UserMapper userMapper;
+
+    @Autowired
+    private RedissonClient redissonClient;
+    // Redisson 是 Redis 的 Java 客户端，RLock 是基于 Redis 实现的分布式锁
 
     // ====== 1. 最简单的文本接口 ======
     // 验证服务是否正常启动
@@ -47,8 +54,9 @@ public class UserController {
         // 普通用户访问会收到 403
     }
 
-    // ====== 2. 查所有用户（从数据库） ======
+    // ====== 2. 查所有用户（从从库读取） ======
 
+    @DS("slave")    // 标记走从库——只读查询不应该给主库压力
     @GetMapping("/list")
     public List<User> list() {
         // selectList(null) = 查整张表，相当于 SQL: SELECT * FROM user WHERE deleted=0
@@ -57,9 +65,9 @@ public class UserController {
         // 浏览器输入 http://localhost:8091/user/list 看 JSON
     }
 
-    // ====== 3. 查单个用户（通过 ID，路径参数） ======
-    // URL 示例: /user/1  →  查 id=1 的用户
+    // ====== 3. 查单个用户（从从库读取） ======
 
+    @DS("slave")
     @GetMapping("/{id}")
     public Result<User> getById(@PathVariable Long id) {
         // @PathVariable = 把 URL 里的 {id} 取出来赋给参数 id
@@ -75,18 +83,49 @@ public class UserController {
         // 返回格式: {"code":200, "message":"success", "data":{...}}
     }
 
-    // ====== 4. 新增用户（POST） ======
+    // ====== 4. 新增用户（写入主库） ======
 
+    @DS("master")   // 标记走主库——写操作必须走主库
     @PostMapping("/add")
     public Result<User> add(@RequestBody User user) {
         // @RequestBody = 把 HTTP 请求体里的 JSON 自动转成 User 对象
         // 跟 C 里你手动解析字符串再给 struct 字段赋值一个意思，Java 自动做了
 
         userMapper.insert(user);
-        // insert = MyBatis-Plus 自带的插入方法，相当于 SQL: INSERT INTO user (name, email) VALUES (?, ?)
-        // 执行完后 user 对象的 id 字段会被自动回填（数据库自增主键）
-
         return Result.ok(user);
-        // 把插入成功的用户数据返回来，带上数据库生成的 id
+    }
+
+    // ====== 5. 分布式锁演示（对比有锁/无锁） ======
+
+    private int stock = 100;
+
+    @GetMapping("/deduct-no-lock")
+    public Result<String> deductNoLock() throws Exception {
+        if (stock <= 0) return Result.fail(400, "库存不足");
+        Thread.sleep(3000);                 // 故意卡3秒，放大并发问题
+        stock--;
+        return Result.ok("扣减成功，剩余库存：" + stock);
+    }
+
+    @GetMapping("/deduct-with-lock")
+    public Result<String> deductWithLock() throws Exception {
+        RLock lock = redissonClient.getLock("inventory-lock");
+        if (!lock.tryLock(2, 10, java.util.concurrent.TimeUnit.SECONDS)) {
+            return Result.fail(429, "系统繁忙（锁被占用），请稍后重试");
+        }
+        try {
+            if (stock <= 0) return Result.fail(400, "库存不足");
+            Thread.sleep(3000);
+            stock--;
+            return Result.ok("扣减成功，剩余库存：" + stock);
+        } finally {
+            if (lock.isHeldByCurrentThread()) lock.unlock();
+        }
+    }
+
+    @GetMapping("/reset-stock")
+    public Result<String> resetStock() {
+        stock = 100;
+        return Result.ok("库存已重置为 100");
     }
 }
