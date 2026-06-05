@@ -59,6 +59,8 @@
             <button class="green" onclick="callNoToken('/user/hello')">无Token访问</button>
         </div>
         <div class="btn-row" style="margin-top:8px">
+            <button onclick="placeOrder(4, '鼠标', 50)">下单(成功)</button>
+            <button class="warn" onclick="placeOrder(4, '豪车', 99999)">下单(余额不足-回滚)</button>
             <button onclick="lockTest('/user/deduct-no-lock')">无锁扣库存</button>
             <button class="warn" onclick="lockTest('/user/deduct-with-lock')">有锁扣库存</button>
             <button class="green" onclick="call('/user/reset-stock')">重置库存</button>
@@ -179,6 +181,25 @@
             .then(function(r) { return r.json(); })
             .then(function(d) {
                 show(el, JSON.stringify(d, null, 2), d.code === 200 ? 'ok' : 'error');
+            });
+        }
+
+        // ====== Seata 下单测试 ======
+        function placeOrder(uid, product, amount) {
+            var el = document.getElementById('apiResult');
+            show(el, '下单中...', '');
+            fetch('http://localhost:8080/order/place', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                },
+                body: JSON.stringify({ userId: uid, product: product, amount: amount })
+            })
+            .then(function(r) { return r.text(); })
+            .then(function(txt) {
+                try { txt = JSON.stringify(JSON.parse(txt), null, 2); } catch(e) {}
+                show(el, '下单 userId=' + uid + ' amount=' + amount + '\n\n' + txt);
             });
         }
 

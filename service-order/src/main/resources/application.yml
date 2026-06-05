@@ -27,4 +27,9 @@ mybatis-plus:
       logic-delete-field: deleted
 
 seata:
-  enabled: false
+  tx-service-group: learn-group          # 事务分组名，对应 seata-server 配置
+  service:
+    vgroup-mapping:
+      learn-group: default               # 映射到 default 集群
+    grouplist:
+      default: 127.0.0.1:8191            # Seata Server 地址

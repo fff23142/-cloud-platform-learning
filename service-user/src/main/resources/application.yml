@@ -38,6 +38,27 @@ redisson:
       connectionMinimumIdleSize: 1
       connectionPoolSize: 2
 
+seata:
+  tx-service-group: learn-group
+  service:
+    vgroup-mapping:
+      learn-group: default
+    grouplist:
+      default: 127.0.0.1:8191
+
+# PowerJob Worker 配 置 — 接入分布调式度务器
+powerjob:
+  worker:
+    enabled: true
+    server-address: 127.0.0.1:7700
+    app-name: learn-app
+    protocol: http
+    store-strategy: disk
+    max-result-length: 4096
+    max-appended-wf-context-length: 4096
+    max-lightweight-task-num: 1024
+    max-heavyweight-task-num: 64
+
 server:
   port: 8091
 

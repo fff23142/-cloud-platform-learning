@@ -25,7 +25,9 @@ public class User {
 
     private String email;
 
-    @TableLogic    // 逻辑删除标记：删数据时不真删，把 deleted 置 1
+    private Double balance;     // 账户余额，Seata 分布式事务演示用
+
+    @TableLogic
     private Integer deleted;
 
     // ====== 构造方法（C: 没有直接对应，类似初始化函数）======
@@ -71,6 +73,9 @@ public class User {
     public void setEmail(String email) {
         this.email = email;
     }
+
+    public Double getBalance() { return balance; }
+    public void setBalance(Double balance) { this.balance = balance; }
 
     // 调试用，把对象转成可读字符串，类似 C 里自己写 print_user() 函数
     @Override // 表示重写了父类的方法

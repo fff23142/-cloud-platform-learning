@@ -1,9 +1,16 @@
 package com.learn.order;
 
 import com.learn.common.Result;
+import io.seata.core.context.RootContext;
+import io.seata.core.model.GlobalStatus;
+import io.seata.spring.annotation.GlobalTransactional;
+import io.seata.tm.api.GlobalTransactionContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -61,5 +68,41 @@ public class OrderController {
         return Result.ok(result);
         // 浏览器打开 http://localhost:8092/order/1 看效果
         // 会同时返回订单详情 + 下单用户的姓名邮箱
+    }
+
+    // ====== 3. 下单 + 扣款（Seata 分布式事务演示） ======
+
+    @GlobalTransactional(timeoutMills = 30000)
+    @PostMapping("/place")
+    public Result<String> placeOrder(@RequestBody Map<String, Object> body) {
+        Long userId = Long.valueOf(body.get("userId").toString());
+        String product = body.get("product").toString();
+        Double amount = Double.valueOf(body.get("amount").toString());
+
+        // ① 插入订单（本服务）
+        Order order = new Order(null, userId, product, amount);
+        orderMapper.insert(order);
+
+        // ② 远程扣余额（跨服务）
+        try {
+            Result<String> deductResult = userFeignClient.deductBalance(
+                    Map.of("userId", userId, "amount", amount));
+
+            if (deductResult == null || deductResult.getCode() != 200) {
+                String msg = deductResult != null ? deductResult.getMessage() : "服务异常";
+                throw new RuntimeException("扣款失败：" + msg);
+            }
+            return Result.ok("下单成功，订单ID=" + order.getId() + "，" + deductResult.getData());
+
+        } catch (RuntimeException e) {
+            // 扣款失败 → Seata 回滚订单插入
+            return Result.fail(400, e.getMessage());
+        }
+    }
+
+    // 统一的异常拦截——避免 Seata 回滚时抛的 RuntimeException 变成 500
+    @ExceptionHandler(RuntimeException.class)
+    public Result<String> handleException(RuntimeException e) {
+        return Result.fail(400, e.getMessage());
     }
 }

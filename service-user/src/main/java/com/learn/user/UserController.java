@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import java.util.List;
 //接收浏览器发来的 HTTP 请求，调Mapper代码根据网页需要读写数据库
 //将结果包装为JSON返回给浏览器（跨域统一由网关 CorsConfig 处理）
@@ -127,5 +128,21 @@ public class UserController {
     public Result<String> resetStock() {
         stock = 100;
         return Result.ok("库存已重置为 100");
+    }
+
+    // ====== 6. 扣减余额（供 order 服务的 Seata 分布式事务调用） ======
+
+    @PostMapping("/deduct-balance")
+    public Result<String> deductBalance(@RequestBody Map<String, Object> body) {
+        Long userId = Long.valueOf(body.get("userId").toString());
+        Double amount = Double.valueOf(body.get("amount").toString());
+
+        User user = userMapper.selectById(userId);
+        if (user == null) return Result.fail(404, "用户不存在");
+        if (user.getBalance() < amount) return Result.fail(400, "余额不足");
+
+        user.setBalance(user.getBalance() - amount);
+        userMapper.updateById(user);
+        return Result.ok("扣款成功，剩余余额：" + user.getBalance());
     }
 }

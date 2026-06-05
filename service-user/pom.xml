@@ -36,11 +36,22 @@
             <artifactId>dynamic-datasource-spring-boot3-starter</artifactId>
             <version>4.3.1</version>
         </dependency>
-        <!-- Redis 分布式锁（Redisson） -->
+        <!-- Redis 分布式锁 -->
         <dependency>
             <groupId>org.redisson</groupId>
             <artifactId>redisson-spring-boot-starter</artifactId>
             <version>3.27.2</version>
+        </dependency>
+        <!-- Seata 分布式事务 -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-seata</artifactId>
+        </dependency>
+        <!-- PowerJob 分布式任务调度 Worker -->
+        <dependency>
+            <groupId>tech.powerjob</groupId>
+            <artifactId>powerjob-worker-spring-boot-starter</artifactId>
+            <version>5.1.2</version>
         </dependency>
         <dependency>
             <groupId>com.mysql</groupId>
