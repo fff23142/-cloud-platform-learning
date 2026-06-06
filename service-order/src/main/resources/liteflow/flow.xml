@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<flow>
+    <!-- 订单审核链：校验库存 → 计算价格 → 记录日志 -->
+    <!-- THEN = 顺序执行，每个节点的输出自动传给下一个节点 -->
+    <chain name="orderCheckChain">
+        THEN(stockCheck, priceCalc, orderLog);
+    </chain>
+    <!--
+        LiteFlow 常见组合模式：
+        THEN(a,b,c)    → 顺序执行
+        WHEN(a,b,c)    → 并行执行
+        IF(x, a, b)    → 条件分支
+        FOR(a).times(5) → 循环5次
+    -->
+</flow>

@@ -63,6 +63,7 @@
             <button class="warn" onclick="placeOrder(4, '豪车', 99999)">下单(余额不足-回滚)</button>
             <button onclick="lockTest('/user/deduct-no-lock')">无锁扣库存</button>
             <button class="warn" onclick="lockTest('/user/deduct-with-lock')">有锁扣库存</button>
+            <button onclick="call('/order/audit?product=鼠标')">LiteFlow审核</button>
             <button class="green" onclick="call('/user/reset-stock')">重置库存</button>
         </div>
         </div>

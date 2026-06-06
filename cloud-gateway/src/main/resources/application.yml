@@ -36,10 +36,19 @@ spring:
           predicates:
             - Path=/auth/**
 
+  sentinel:
+    transport:
+      port: 8719                # Sentinel 内部通信端口
+    scg:
+      fallback:
+        mode: response          # 被限流时直接返回响应
+        response-status: 429    # HTTP 429 Too Many Requests
+        response-body: '{"code":429,"message":"请求太频繁，请稍后再试"}'
+
 server:
   port: 8080
 
-# JWT 密钥（和 cloud-auth 用同一把密钥，否则网关验不过 Token）
+# JWT 密钥
 auth:
   jwt:
     secret: ThisIsASecretKeyForLearningMinLength32

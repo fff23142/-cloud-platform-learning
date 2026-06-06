@@ -16,6 +16,9 @@ spring:
       enabled: true
       force: true
 
+liteflow:
+  rule-source: liteflow/flow.xml           # 流程定义文件路径
+
 server:
   port: 8092
 

@@ -1,6 +1,9 @@
 package com.learn.order;
 
 import com.learn.common.Result;
+import com.learn.order.cmp.OrderContext;
+import com.yomahub.liteflow.core.FlowExecutor;
+import com.yomahub.liteflow.flow.LiteflowResponse;
 import io.seata.core.context.RootContext;
 import io.seata.core.model.GlobalStatus;
 import io.seata.spring.annotation.GlobalTransactional;
@@ -30,6 +33,9 @@ public class OrderController {
 
     @Autowired
     private UserFeignClient userFeignClient;
+
+    @Autowired
+    private FlowExecutor flowExecutor;  // LiteFlow 流程执行器，传入链名即可触发整条链
     // 这就是 Feign 的关键：userFeignClient 看起来是个本地变量
     // 实际上每次调用都会发 HTTP 请求到 service-user，你不需要写一行网络代码
 
@@ -100,7 +106,26 @@ public class OrderController {
         }
     }
 
-    // 统一的异常拦截——避免 Seata 回滚时抛的 RuntimeException 变成 500
+    // ====== 4. LiteFlow 规则链演示 ======
+    // GET /order/audit?product=鼠标 → 触发完整的订单审核链
+
+    @GetMapping("/audit")
+    public Result<String> audit(String product) {
+        OrderContext ctx = new OrderContext();
+        ctx.setProduct(product);
+
+        // 执行链：stockCheck → priceCalc → orderLog
+        LiteflowResponse response = flowExecutor.execute2Resp(
+                "orderCheckChain", null, ctx);
+
+        if (response.isSuccess()) {
+            return Result.ok(ctx.getResult());
+        } else {
+            return Result.fail(500, "审核失败：" + response.getMessage());
+        }
+    }
+
+    // 统一的异常拦截
     @ExceptionHandler(RuntimeException.class)
     public Result<String> handleException(RuntimeException e) {
         return Result.fail(400, e.getMessage());

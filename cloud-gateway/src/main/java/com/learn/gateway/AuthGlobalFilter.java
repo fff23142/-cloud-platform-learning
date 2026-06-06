@@ -18,6 +18,7 @@ import javax.crypto.SecretKey;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.concurrent.ConcurrentHashMap;
 
 // 网关门卫：每个请求进来先在这里检查有没有合法 Token
 // GlobalFilter = 对所有路由生效，不需要每个路由单独配置
@@ -26,6 +27,8 @@ import java.util.Base64;
 public class AuthGlobalFilter implements GlobalFilter, Ordered {
 
     private final SecretKey key;
+    // 冷却期记录：被限流后 3 秒内拒绝该 IP
+    private final ConcurrentHashMap<String, Long> cooldownMap = new ConcurrentHashMap<>();
 
     public AuthGlobalFilter(@Value("${auth.jwt.secret}") String secret) {
         this.key = Keys.hmacShaKeyFor(Base64.getEncoder().encode(secret.getBytes()));
@@ -49,6 +52,22 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
         String header = exchange.getRequest().getHeaders().getFirst("Authorization");
         if (header == null || !header.startsWith("Bearer ")) {
             return unAuth(exchange, "未提供 Token，请先登录");
+        }
+
+        // Sentinel 限流检查 —— /user/hello 限制每秒 2 次，超限后冷却 3 秒
+        if (path.startsWith("/user/hello")) {
+            // 冷却期检查
+            String clientIp = exchange.getRequest().getRemoteAddress().getAddress().getHostAddress();
+            Long blockedAt = cooldownMap.get(clientIp);
+            if (blockedAt != null && System.currentTimeMillis() - blockedAt < 3000) {
+                long waitSec = 3 - (System.currentTimeMillis() - blockedAt) / 1000;
+                return unAuth(exchange, "请求太频繁，请等待 " + waitSec + " 秒后再试");
+            }
+            // Sentinel QPS 检查
+            if (!SentinelConfig.allow("user-hello")) {
+                cooldownMap.put(clientIp, System.currentTimeMillis());  // 记录冷却时间
+                return unAuth(exchange, "请求太频繁，请等待 3 秒后再试");
+            }
         }
 
         // 验证 Token + 提取身份信息
