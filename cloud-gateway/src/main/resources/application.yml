@@ -45,6 +45,15 @@ spring:
         response-status: 429    # HTTP 429 Too Many Requests
         response-body: '{"code":429,"message":"请求太频繁，请稍后再试"}'
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      show-details: always
+
 server:
   port: 8080
 

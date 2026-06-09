@@ -59,6 +59,19 @@ powerjob:
     max-lightweight-task-num: 1024
     max-heavyweight-task-num: 64
 
+logging:
+  file:
+    name: logs/service-user.log
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      show-details: always
+
 server:
   port: 8091
 

@@ -19,6 +19,15 @@ spring:
 liteflow:
   rule-source: liteflow/flow.xml           # 流程定义文件路径
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      show-details: always
+
 server:
   port: 8092
 

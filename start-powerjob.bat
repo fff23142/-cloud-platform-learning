@@ -1,6 +1,6 @@
 @echo off
 cd /d D:\BaiduNetdiskDownload\work\demo\docker\powerjob
-java -Dfile.encoding=UTF-8 -jar powerjob-server.jar ^
+java -Dfile.encoding=UTF-8 -Dpowerjob.network.local.address=127.0.0.1 -jar powerjob-server.jar ^
   --spring.profiles.active=daily ^
   --server.port=7700 ^
   --oms.mongodb.enable=false ^
